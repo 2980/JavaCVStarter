@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+        <action>
+            <actionName>CUSTOM-Run</actionName>
+            <displayName>Run</displayName>
+            <goals>
+                <goal>exec:java</goal>
+                <goal>-Dexec.mainClass="com.mycompany.javacv.Demo"</goal>
+            </goals>
+        </action>
+        <action>
+            <actionName>CUSTOM-RunDemo</actionName>
+            <displayName>RunDemo</displayName>
+            <goals>
+                <goal>exec:java</goal>
+                <goal>-Dexec.mainClass="com.mycompany.javacv.Demo"</goal>
+            </goals>
+        </action>
+    </actions>

@@ -1,0 +1,16 @@
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.bytedeco.javacv</groupId>
+    <artifactId>demo</artifactId>
+    <version>1.4</version>
+    <dependencies>
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacv-platform</artifactId>
+            <version>1.4</version>
+        </dependency>
+    </dependencies>
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties> 
+</project>
