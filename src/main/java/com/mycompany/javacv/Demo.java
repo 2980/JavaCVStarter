@@ -1,87 +1,89 @@
 package com.mycompany.javacv;
 
-import java.awt.Color;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
-import org.bytedeco.javacv.CanvasFrame;
+import java.nio.ByteBuffer;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameGrabber;
 
-import javax.swing.*;
 import org.bytedeco.javacv.FFmpegFrameRecorder;
-import org.bytedeco.javacv.Java2DFrameConverter;
 
 public class Demo {
 
     public static void main(String[] args) throws FrameGrabber.Exception, InterruptedException, IOException {
 
-        
-        FFmpegFrameGrabber grabber = new FFmpegFrameGrabber("FerrisWheel640.mp4");
+        //Initialize our decoder
+        FFmpegFrameGrabber grabber = new FFmpegFrameGrabber("Fish.mp4");
+        //Tell the decoder to start processing
         grabber.start();
 
-        CanvasFrame canvasFrame = new CanvasFrame("Extracted Frame", 1);
-        canvasFrame.setCanvasSize(grabber.getImageWidth(), grabber.getImageHeight());
+        //Initialize our encoder
         FFmpegFrameRecorder recorder = new FFmpegFrameRecorder("Out.mp4", grabber.getImageWidth(), grabber.getImageHeight());
-        recorder.setVideoBitrate(4000000);
-        
+        //We can set a target bitrate (Mb/s) or a quality target. Quality targets range from 0 (lossless, largest size) to 51 (really bad, smallest size)
+        //There does not appear to be a major impact on runtime, just on filesize
+        recorder.setVideoQuality(0);
+        //The default framerate for FFmpegFrameRecorder is 30 fps
+
+        //Tell the recorder are done setting parameters.
         recorder.start();
-        
-        
-        // Exit the example when the canvas frame is closed
-        canvasFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-        long delay = Math.round(1000d / grabber.getFrameRate());
-
-        // Read frame by frame, stop early if the display window is closed
+        // Reference for each frame we decode
         Frame frame;
         
-        Java2DFrameConverter j = new Java2DFrameConverter();
+        //Loop until we have processed every frame
+        while ((frame = grabber.grabImage()) != null) {
+            // Get the frame dimensions
+            int width = frame.imageWidth;
+            int height = frame.imageHeight;
+
+            //Read the frame as a buffer of bytes (RGB)
             
-        
-        
-        while ((frame = grabber.grabImage()) != null && canvasFrame.isVisible()) {
-            // Capture and show the frame
-            canvasFrame.showImage(frame);
+            //Set the buffer to start reading at the begging of the frame
+            ByteBuffer bb = (ByteBuffer) frame.image[0].position(0);
+            //Create a byte buffer of the right size
+            byte[] allBytes = new byte[3 * width * height];
             
-            BufferedImage bi = j.convert(frame);
-            
-            int[] rgbArray = new int[bi.getWidth() * bi.getHeight()];
-            
-            bi.getRGB(0, 0, bi.getWidth(), bi.getHeight(), rgbArray, 0, bi.getWidth() );
-            
-            
-            for(int y = 0; y < bi.getHeight(); y++)
-            {
-                for(int x = 0; x < bi.getWidth(); x++)
-                {
-                    int index = y*bi.getWidth() + x;
-                    int pixel = rgbArray[index]; 
-                    Color c = new Color(pixel);
+            //Read values from the decoder into the byte array
+            bb.get(allBytes, 0, 3 * width * height);
+
+            //Loop over each pixel (byte triple)
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
                     
-                    int r = c.getRed();
-                    int g = c.getGreen();
-                    int b = c.getBlue();
+                    //Figure where in our 1D array our x,y pixel is.
+                    int start = 3 * (x + y * width);
                     
-                    rgbArray[index] = new Color(r, r, r).getRGB();
+                    byte r = allBytes[start];
+                    byte g = allBytes[start+1];
+                    byte b = allBytes[start+2];
                     
+                    allBytes[start] = allBytes[start];      //Set r
+                    allBytes[start + 1] = allBytes[start];  //Set g
+                    allBytes[start + 2] = allBytes[start];  //Set b
+
                 }
             }
-            
-            bi.setRGB(0, 0, bi.getWidth(), bi.getHeight(), rgbArray, 0, bi.getWidth());
-            
-            Frame newFrame = j.convert(bi);
-            
-            recorder.record(newFrame);
-            // Delay
-            //Thread.sleep(delay);
+
+            //Resest our position in the frame
+            bb = (ByteBuffer) frame.image[0].position(0);
+
+            //And set our buffer
+            bb.put(allBytes, 0, 3 * width * height);
+
+            //Save the frame to our encoder
+            recorder.record(frame);
+           
         }
-        
+
+        //Tell the encoder we are done, so it can do the final steps
         recorder.stop();
 
-        // Close the video file
+        // Release our resources
         grabber.release();
         recorder.release();
+        
+        //Indication on the console that we have finished.
+        System.out.println("Done");
 
     }
 
